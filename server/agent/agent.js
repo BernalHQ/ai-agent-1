@@ -1,26 +1,41 @@
 import { createReactAgent } from "@langchain/langgraph/prebuilt";
 import { ChatOpenAI } from "@langchain/openai";
 import { ChatAnthropic } from "@langchain/anthropic";
+import { tool } from "@langchain/core/tools";
+import { z } from "zod";
+
+const weatherTool = tool(async ({query}) => {
+    console.log(query);
+
+    return 'The weather in tokio is sunny';
+}, {
+  name: 'weather',
+  description: 'Get the weather in a given location',
+  schema: z.object({
+      query: z.string().describe('The location to get the weather for')
+  })
+});
 
 const llm = new ChatAnthropic({
     model: 'claude-3-5-sonnet-latest',
     apiKey: process.env.ANTHROPIC_KEY
 });
 
+
 const agent = createReactAgent({
  llm: llm,
- tools: [],	
+ tools: [weatherTool],	
 });
 
 const response = await agent.invoke({
     messages: [{
         role: 'user',
-        content: 'Hello world!'
+        content: 'Whats the weather in tokio?'
     }]
 });
 
 
-console.log(response.messages); 
+console.log(response.messages.at(-1).content); 
 
 //import { TavilySearchResults } from "@langchain/community/tools/tavily_search";
 /*
