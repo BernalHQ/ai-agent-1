@@ -3,6 +3,7 @@ import { ChatOpenAI } from "@langchain/openai";
 import { ChatAnthropic } from "@langchain/anthropic";
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
+import { MemorySaver } from "@langchain/langgraph";
 
 const weatherTool = tool(async ({query}) => {
     console.log(query);
@@ -21,10 +22,12 @@ const llm = new ChatAnthropic({
     apiKey: process.env.ANTHROPIC_KEY
 });
 
+const checkpointSaver = new MemorySaver();
 
 const agent = createReactAgent({
  llm: llm,
  tools: [weatherTool],	
+ checkpointSaver: checkpointSaver
 });
 
 const response = await agent.invoke({
@@ -32,10 +35,26 @@ const response = await agent.invoke({
         role: 'user',
         content: 'Whats the weather in tokio?'
     }]
-});
+},
+{
+  configurable: { thread_id: 42 }
+}
+);
+
+const followup = await agent.invoke({
+    messages: [{
+        role: 'user',
+        content: 'Whats city is that for?'
+    }]
+},
+{
+  configurable: { thread_id: 42 }
+}
+);
 
 
 console.log(response.messages.at(-1).content); 
+console.info('other: ', followup.messages.at(-1).content); 
 
 //import { TavilySearchResults } from "@langchain/community/tools/tavily_search";
 /*
